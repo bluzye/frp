@@ -15,8 +15,6 @@
 package client
 
 import (
-	"crypto/tls"
-	"fmt"
 	"io"
 	"runtime/debug"
 	"sync"
@@ -179,14 +177,7 @@ func (ctl *Control) connectServer() (conn frpNet.Conn, err error) {
 		}
 		conn = frpNet.WrapConn(stream)
 	} else {
-		var tlsConfig *tls.Config
-		if ctl.clientCfg.TLSEnable {
-			tlsConfig = &tls.Config{
-				InsecureSkipVerify: true,
-			}
-		}
-		conn, err = frpNet.ConnectServerByProxyWithTLS(ctl.clientCfg.HttpProxy, ctl.clientCfg.Protocol,
-			fmt.Sprintf("%s:%d", ctl.clientCfg.ServerAddr, ctl.clientCfg.ServerPort), tlsConfig)
+		conn, err = frpNet.ConnectServerByConfig(&ctl.clientCfg)
 		if err != nil {
 			ctl.Warn("start new connection to server error: %v", err)
 			return

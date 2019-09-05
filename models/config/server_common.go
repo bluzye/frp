@@ -42,6 +42,10 @@ type ServerCommonConf struct {
 	// value is 0, the server will not listen for KCP connections. By default,
 	// this value is 0.
 	KcpBindPort int `json:"kcp_bind_port"`
+	// KcpSecret specifies the KCP encrypt key. If this
+	// value is empty, the KCP connections will not encrypted. By default,
+	// this value is empty.
+	KcpSecret string `json:"kcp_secret"`
 	// ProxyBindAddr specifies the address that the proxy binds to. This value
 	// may be the same as BindAddr. By default, this value is "0.0.0.0".
 	ProxyBindAddr string `json:"proxy_bind_addr"`
@@ -144,6 +148,7 @@ func GetDefaultServerConf() ServerCommonConf {
 		BindPort:          7000,
 		BindUdpPort:       0,
 		KcpBindPort:       0,
+		KcpSecret:         "",
 		ProxyBindAddr:     "0.0.0.0",
 		VhostHttpPort:     0,
 		VhostHttpsPort:    0,
@@ -215,6 +220,12 @@ func UnmarshalServerConfFromIni(content string) (cfg ServerCommonConf, err error
 		} else {
 			cfg.KcpBindPort = int(v)
 		}
+	}
+
+	if tmpStr, ok = conf.Get("common", "kcp_secret"); ok {
+		cfg.KcpSecret = tmpStr
+	} else {
+		cfg.KcpSecret = ""
 	}
 
 	if tmpStr, ok = conf.Get("common", "proxy_bind_addr"); ok {

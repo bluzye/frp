@@ -104,6 +104,8 @@ type ClientCommonConf struct {
 	// Valid values are "tcp", "kcp", and "websocket". By default, this value
 	// is "tcp".
 	Protocol string `json:"protocol"`
+	// KcpSecret specifies kcp secret when protocol is kcp.
+	KcpSecret string `json:"kcp_secret"`
 	// TLSEnable specifies whether or not TLS should be used when communicating
 	// with the server.
 	TLSEnable bool `json:"tls_enable"`
@@ -141,6 +143,7 @@ func GetDefaultClientConf() ClientCommonConf {
 		LoginFailExit:     true,
 		Start:             make(map[string]struct{}),
 		Protocol:          "tcp",
+		KcpSecret:         "",
 		TLSEnable:         false,
 		HeartBeatInterval: 30,
 		HeartBeatTimeout:  90,
@@ -269,6 +272,10 @@ func UnmarshalClientConfFromIni(content string) (cfg ClientCommonConf, err error
 			return
 		}
 		cfg.Protocol = tmpStr
+	}
+
+	if tmpStr, ok = conf.Get("common", "kcp_secret"); ok {
+		cfg.KcpSecret = tmpStr
 	}
 
 	if tmpStr, ok = conf.Get("common", "tls_enable"); ok && tmpStr == "true" {

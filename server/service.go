@@ -140,7 +140,7 @@ func NewService(cfg config.ServerCommonConf) (svr *Service, err error) {
 
 	// Listen for accepting connections from client using kcp protocol.
 	if cfg.KcpBindPort > 0 {
-		svr.kcpListener, err = frpNet.ListenKcp(cfg.BindAddr, cfg.KcpBindPort)
+		svr.kcpListener, err = frpNet.ListenKcp(cfg.BindAddr, cfg.KcpBindPort, cfg.KcpSecret)
 		if err != nil {
 			err = fmt.Errorf("Listen on kcp address udp [%s:%d] error: %v", cfg.BindAddr, cfg.KcpBindPort, err)
 			return

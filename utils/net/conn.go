@@ -23,10 +23,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/fatedier/frp/models/config"
 	"github.com/fatedier/frp/utils/log"
 
 	gnet "github.com/fatedier/golib/net"
-	kcp "github.com/fatedier/kcp-go"
 )
 
 // Conn is the interface of connections used in frp.
@@ -166,59 +166,38 @@ func (statsConn *StatsConn) Close() (err error) {
 	return
 }
 
-func ConnectServer(protocol string, addr string) (c Conn, err error) {
-	switch protocol {
-	case "tcp":
-		return ConnectTcpServer(addr)
-	case "kcp":
-		kcpConn, errRet := kcp.DialWithOptions(addr, nil, 10, 3)
-		if errRet != nil {
-			err = errRet
-			return
-		}
-		kcpConn.SetStreamMode(true)
-		kcpConn.SetWriteDelay(true)
-		kcpConn.SetNoDelay(1, 20, 2, 1)
-		kcpConn.SetWindowSize(128, 512)
-		kcpConn.SetMtu(1350)
-		kcpConn.SetACKNoDelay(false)
-		kcpConn.SetReadBuffer(4194304)
-		kcpConn.SetWriteBuffer(4194304)
-		c = WrapConn(kcpConn)
-		return
-	default:
-		return nil, fmt.Errorf("unsupport protocol: %s", protocol)
+func ConnectServerByConfig(cfg *config.ClientCommonConf) (c Conn, err error) {
+	if cfg.HttpProxy != "" && cfg.Protocol != "tcp" {
+		return nil, fmt.Errorf("%s unsupport http proxy", cfg.Protocol)
 	}
-}
 
-func ConnectServerByProxy(proxyUrl string, protocol string, addr string) (c Conn, err error) {
-	switch protocol {
+	addr := fmt.Sprintf("%s:%d", cfg.ServerAddr, cfg.ServerPort)
+	switch cfg.Protocol {
 	case "tcp":
 		var conn net.Conn
-		if conn, err = gnet.DialTcpByProxy(proxyUrl, addr); err != nil {
+		if conn, err = gnet.DialTcpByProxy(cfg.HttpProxy, addr); err != nil {
 			return
 		}
-		return WrapConn(conn), nil
+		c = WrapConn(conn)
 	case "kcp":
-		// http proxy is not supported for kcp
-		return ConnectServer(protocol, addr)
+		var kcpConn net.Conn
+		kcpConn, err = NewKcpConn(addr, cfg.KcpSecret)
+		if err != nil {
+			break
+		}
+		c = WrapConn(kcpConn)
 	case "websocket":
-		return ConnectWebsocketServer(addr)
+		c, err = ConnectWebsocketServer(addr)
 	default:
-		return nil, fmt.Errorf("unsupport protocol: %s", protocol)
-	}
-}
-
-func ConnectServerByProxyWithTLS(proxyUrl string, protocol string, addr string, tlsConfig *tls.Config) (c Conn, err error) {
-	c, err = ConnectServerByProxy(proxyUrl, protocol, addr)
-	if err != nil {
-		return
+		err = fmt.Errorf("unsupport protocol: %s", cfg.Protocol)
 	}
 
-	if tlsConfig == nil {
-		return
+	if err == nil && cfg.TLSEnable {
+		tlsConfig := &tls.Config{
+			InsecureSkipVerify: true,
+		}
+		c = WrapTLSClientConn(c, tlsConfig)
 	}
 
-	c = WrapTLSClientConn(c, tlsConfig)
 	return
 }

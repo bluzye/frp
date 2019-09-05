@@ -286,7 +286,7 @@ func (sv *XtcpVisitor) handleConn(userConn frpNet.Conn) {
 
 	// wrap kcp connection
 	var remote io.ReadWriteCloser
-	remote, err = frpNet.NewKcpConnFromUdp(lConn, true, natHoleRespMsg.ClientAddr)
+	remote, err = frpNet.NewKcpConnFromUdp(lConn, true, natHoleRespMsg.ClientAddr, sv.ctl.clientCfg.KcpSecret)
 	if err != nil {
 		sv.Error("create kcp connection from udp connection error: %v", err)
 		return

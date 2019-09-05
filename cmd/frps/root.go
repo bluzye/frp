@@ -40,6 +40,7 @@ var (
 	bindPort          int
 	bindUdpPort       int
 	kcpBindPort       int
+	kcpSecret         string
 	proxyBindAddr     string
 	vhostHttpPort     int
 	vhostHttpsPort    int
@@ -69,6 +70,7 @@ func init() {
 	rootCmd.PersistentFlags().IntVarP(&bindPort, "bind_port", "p", 7000, "bind port")
 	rootCmd.PersistentFlags().IntVarP(&bindUdpPort, "bind_udp_port", "", 0, "bind udp port")
 	rootCmd.PersistentFlags().IntVarP(&kcpBindPort, "kcp_bind_port", "", 0, "kcp bind udp port")
+	rootCmd.PersistentFlags().StringVarP(&kcpSecret, "kcp_secret", "", "", "kcp encrypt secret")
 	rootCmd.PersistentFlags().StringVarP(&proxyBindAddr, "proxy_bind_addr", "", "0.0.0.0", "proxy bind address")
 	rootCmd.PersistentFlags().IntVarP(&vhostHttpPort, "vhost_http_port", "", 0, "vhost http port")
 	rootCmd.PersistentFlags().IntVarP(&vhostHttpsPort, "vhost_https_port", "", 0, "vhost https port")
@@ -160,6 +162,7 @@ func parseServerCommonCfgFromCmd() (cfg config.ServerCommonConf, err error) {
 	cfg.BindPort = bindPort
 	cfg.BindUdpPort = bindUdpPort
 	cfg.KcpBindPort = kcpBindPort
+	cfg.KcpSecret = kcpSecret
 	cfg.ProxyBindAddr = proxyBindAddr
 	cfg.VhostHttpPort = vhostHttpPort
 	cfg.VhostHttpsPort = vhostHttpsPort

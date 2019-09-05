@@ -15,6 +15,7 @@
 package net
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"net"
 
@@ -31,8 +32,16 @@ type KcpListener struct {
 	log.Logger
 }
 
-func ListenKcp(bindAddr string, bindPort int) (l *KcpListener, err error) {
-	listener, err := kcp.ListenWithOptions(fmt.Sprintf("%s:%d", bindAddr, bindPort), nil, 10, 3)
+func ListenKcp(bindAddr string, bindPort int, secret string) (l *KcpListener, err error) {
+	var block kcp.BlockCrypt
+
+	// AES256, ignore error
+	if secret != "" {
+		hash := sha256.Sum256([]byte(secret))
+		block, _ = kcp.NewAESBlockCrypt(hash[:])
+	}
+
+	listener, err := kcp.ListenWithOptions(fmt.Sprintf("%s:%d", bindAddr, bindPort), block, 10, 3)
 	if err != nil {
 		return l, err
 	}
@@ -86,8 +95,16 @@ func (l *KcpListener) Close() error {
 	return nil
 }
 
-func NewKcpConnFromUdp(conn *net.UDPConn, connected bool, raddr string) (net.Conn, error) {
-	kcpConn, err := kcp.NewConnEx(1, connected, raddr, nil, 10, 3, conn)
+func NewKcpConnFromUdp(conn *net.UDPConn, connected bool, raddr string, secret string) (net.Conn, error) {
+	var block kcp.BlockCrypt
+
+	// AES256, ignore error
+	if secret != "" {
+		hash := sha256.Sum256([]byte(secret))
+		block, _ = kcp.NewAESBlockCrypt(hash[:])
+	}
+
+	kcpConn, err := kcp.NewConnEx(1, connected, raddr, block, 10, 3, conn)
 	if err != nil {
 		return nil, err
 	}
@@ -98,4 +115,18 @@ func NewKcpConnFromUdp(conn *net.UDPConn, connected bool, raddr string) (net.Con
 	kcpConn.SetWindowSize(1024, 1024)
 	kcpConn.SetACKNoDelay(false)
 	return kcpConn, nil
+}
+
+func NewKcpConn(raddr, secret string) (net.Conn, error) {
+	addr, err := net.ResolveUDPAddr("udp", raddr)
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := net.DialUDP("udp", nil, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewKcpConnFromUdp(c, true, raddr, secret)
 }
